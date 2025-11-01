@@ -1,26 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/config/paleta_colores.dart' as pal;
-import 'package:flutter_application_1/widgets/barra_nav_superior.dart';
-import 'package:flutter_application_1/widgets/barra_nav_inferior.dart';
 import 'package:flutter_application_1/config/api.dart';
+import 'package:flutter_application_1/config/paleta_colores.dart' as pal;
+import 'package:flutter_application_1/widgets/barra_nav_inferior.dart';
+import 'package:flutter_application_1/widgets/barra_nav_superior.dart';
 import 'package:http/http.dart' as http;
+
 import '../Turnos/reservar_turno.dart';
 
 class Especialidad {
   final int id;
   final String nombre;
 
-  const Especialidad({
-    required this.id,
-    required this.nombre,
-  });
+  const Especialidad({required this.id, required this.nombre});
 
-  factory Especialidad.fromJson(Map<String, dynamic> j) => Especialidad(
-        id: j['id'] as int,
-        nombre: j['nombre'] as String,
-      );
+  factory Especialidad.fromJson(Map<String, dynamic> j) =>
+      Especialidad(id: j['id'] as int, nombre: j['nombre'] as String);
 }
 
 // -------------------- PANTALLA --------------------
@@ -39,7 +36,6 @@ class _EspecialidadesScreenState extends State<EspecialidadesScreen> {
 
   List<Especialidad> _items = const [];
   List<Especialidad> _itemsAll = const [];
-  String? _error;
   bool _loading = false;
 
   @override
@@ -59,7 +55,6 @@ class _EspecialidadesScreenState extends State<EspecialidadesScreen> {
   Future<void> _cargarEspecialidades() async {
     setState(() {
       _loading = true;
-      _error = null;
     });
 
     try {
@@ -74,16 +69,15 @@ class _EspecialidadesScreenState extends State<EspecialidadesScreen> {
 
       final list = (json.decode(res.body) as List).cast<Map<String, dynamic>>();
       final todas = list
-          .map((j) => Especialidad(
-                id: j['id'] as int,
-                nombre: j['nombre'] as String,
-              ))
+          .map(
+            (j) =>
+                Especialidad(id: j['id'] as int, nombre: j['nombre'] as String),
+          )
           .toList();
 
       _itemsAll = todas;
       _aplicarFiltro();
     } catch (e) {
-      _error = e.toString();
       setState(() => _items = const []);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +91,10 @@ class _EspecialidadesScreenState extends State<EspecialidadesScreen> {
 
   void _onSearchChanged() {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () => _aplicarFiltro());
+    _debounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _aplicarFiltro(),
+    );
   }
 
   void _aplicarFiltro() {
@@ -130,16 +127,22 @@ class _EspecialidadesScreenState extends State<EspecialidadesScreen> {
                   hintText: 'Buscar…',
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   prefixIcon: const Icon(Icons.search, color: Colors.black54),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.black.withOpacity(.15)),
+                    borderSide: BorderSide(
+                      color: Colors.black.withOpacity(.15),
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.black.withOpacity(.15)),
+                    borderSide: BorderSide(
+                      color: Colors.black.withOpacity(.15),
+                    ),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -154,18 +157,19 @@ class _EspecialidadesScreenState extends State<EspecialidadesScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _items.isEmpty
-                      ? const Center(
-                          child: Text('Sin resultados',
-                              style: TextStyle(color: Colors.black54)),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                          itemCount: _items.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (_, i) => _EspecialidadTile(
-                            especialidad: _items[i],
-                          ),
-                        ),
+                  ? const Center(
+                      child: Text(
+                        'Sin resultados',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                      itemCount: _items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (_, i) =>
+                          _EspecialidadTile(especialidad: _items[i]),
+                    ),
             ),
           ],
         ),

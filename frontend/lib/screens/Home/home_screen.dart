@@ -609,26 +609,4 @@ class _QuickButton extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  final int count;
-  const _Badge({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: pal.colorAtencion,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        count > 9 ? '9+' : '$count',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
+// Badge widget removed (not referenced). If you want notifications badge, re-add it here.

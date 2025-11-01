@@ -1,8 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/navigation.dart';
 
 import 'firebase_options.dart';
-import 'navigation.dart';
 import 'screens/Login/login_screen.dart';
 
 void main() async {
