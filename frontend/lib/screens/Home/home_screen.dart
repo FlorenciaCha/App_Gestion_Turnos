@@ -1,14 +1,20 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import '../Login/login_screen.dart';
-import '../Turnos/misTurnos.dart';
-import '../Turnos/reservar_turno.dart';
-import '../Turnos/gestion_turnos.dart';
-import '../Profesionales/profesionales.dart';
-import '../Especialidades/especialidades.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_application_1/config/api.dart';
 import 'package:flutter_application_1/config/paleta_colores.dart' as pal;
+import 'package:flutter_application_1/navigation.dart';
 import 'package:flutter_application_1/widgets/barra_nav_inferior.dart';
 import 'package:flutter_application_1/widgets/barra_nav_superior.dart';
+import 'package:http/http.dart' as http;
+
+import '../Especialidades/especialidades.dart';
+import '../Login/login_screen.dart';
+import '../Profesionales/profesionales.dart';
+import '../Turnos/gestion_turnos.dart';
+import '../Turnos/misTurnos.dart';
+import '../Turnos/reservar_turno.dart';
 
 // Paleta
 /*const fondo = Color(0xFFF8FAFC);
@@ -26,25 +32,90 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final PageController _pageCtrl = PageController();
   int _currentPage = 0;
   int _notifCount = 3; // demo
 
-  // Demo “próximos turnos”
-  final List<Appointment> _nextAppointments = const [
-    Appointment(especialidad: 'Cardiología', profesional: 'Dra. Lopez', fecha: 'Mar 01, 10:30'),
-    Appointment(especialidad: 'Clínica', profesional: 'Dr. Pérez', fecha: 'Mar 05, 09:00'),
-    Appointment(especialidad: 'Dermatología', profesional: 'Dra. Ruiz', fecha: 'Mar 12, 15:15'),
-  ];
+  // Próximos turnos (cargados desde el backend)
+  List<Appointment> _nextAppointments = [];
 
   int _bottomIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _loadNextAppointments();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes so we can refresh when returning to this screen
+    final modal = ModalRoute.of(context);
+    if (modal != null) {
+      routeObserver.subscribe(this, modal);
+    }
+  }
+
+  @override
   void dispose() {
+    // Unsubscribe from route observer
+    routeObserver.unsubscribe(this);
     _pageCtrl.dispose();
     super.dispose();
   }
+
+  @override
+  void didPopNext() {
+    // Called when the top route has been popped and this route shows up again.
+    _loadNextAppointments();
+  }
+
+  /// Cargar próximos turnos desde el backend (máx 3)
+  Future<void> _loadNextAppointments() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final idToken = await user.getIdToken();
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/turnos/usuario'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final List<Appointment> items = data
+            .map((json) => Appointment.fromJson(json))
+            .toList();
+
+        // Filtrar solo turnos en estado 'activo' y con fechaHora >= ahora
+        final ahora = DateTime.now();
+        final activos = items
+            .where(
+              (t) => t.estado == 'activo' && t.fechaHora.compareTo(ahora) >= 0,
+            )
+            .toList();
+
+        // ordenar de forma descendente (más próximos primero según la instrucción)
+        activos.sort((a, b) => a.fechaHora.compareTo(b.fechaHora));
+
+        setState(() {
+          _nextAppointments = activos.take(3).toList();
+          if (_nextAppointments.isNotEmpty) _currentPage = 0;
+        });
+      }
+    } catch (e) {
+      // Silencioso; se puede mejorar mostrando un SnackBar
+    }
+  }
+
+  // dispose removed since we now override it above
 
   @override
   Widget build(BuildContext context) {
@@ -128,89 +199,96 @@ class _HomeScreenState extends State<HomeScreen> {
         onMenuSelected: (value) async {
           switch (value) {
             case 'mis_turnos':
-            if (!context.mounted) return;
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MisTurnosScreen()),
-            );
-            break;
+              if (!context.mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MisTurnosScreen()),
+              );
+              break;
 
-          case 'historial':
-          
-          if (!context.mounted) return;
-          Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const GestionTurnosScreen()),
-            );
-          break;
+            case 'historial':
+              if (!context.mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GestionTurnosScreen()),
+              );
+              break;
 
-          case 'especialidades':
-            if (!context.mounted) return;
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EspecialidadesScreen()),
-            );
-            break;
+            case 'especialidades':
+              if (!context.mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EspecialidadesScreen()),
+              );
+              break;
 
-        case 'profesionales':
-          if (!context.mounted) return;
-          Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfesionaleScreen()),
-            );
-        break;
+            case 'profesionales':
+              if (!context.mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfesionaleScreen()),
+              );
+              break;
 
-        case 'perfil':
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ir a Mi perfil')),
-          );
-        break;
+            case 'perfil':
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Ir a Mi perfil')));
+              break;
 
-        case 'logout':
-          // Cerrar sesión  y llevar a Login
-          await FirebaseAuth.instance.signOut();
-          if (!context.mounted) return;
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-          );
-        break;
-      }
-    },
+            case 'logout':
+              // Cerrar sesión  y llevar a Login
+              await FirebaseAuth.instance.signOut();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+              break;
+          }
+        },
 
-    menuBuilder: (context) => const [
-      PopupMenuItem(
-        value: 'mis_turnos',
-        child: Text('Mis turnos', style: TextStyle(color: Colors.white)),
+        menuBuilder: (context) => const [
+          PopupMenuItem(
+            value: 'mis_turnos',
+            child: Text('Mis turnos', style: TextStyle(color: Colors.white)),
+          ),
+          PopupMenuItem(
+            value: 'historial',
+            child: Text(
+              'Historial turnos',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'especialidades',
+            child: Text(
+              'Especialidades',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'profesionales',
+            child: Text('Profesionales', style: TextStyle(color: Colors.white)),
+          ),
+          PopupMenuItem(
+            value: 'perfil',
+            child: Text('Mi perfil', style: TextStyle(color: Colors.white)),
+          ),
+          PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'logout',
+            child: Text(
+              'Cerrar sesión',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
-      PopupMenuItem(
-        value: 'historial',
-        child: Text('Historial turnos', style: TextStyle(color: Colors.white)),
-      ),
-      PopupMenuItem(
-        value: 'especialidades',
-        child: Text('Especialidades', style: TextStyle(color: Colors.white)),
-      ),
-      PopupMenuItem(
-        value: 'profesionales',
-        child: Text('Profesionales', style: TextStyle(color: Colors.white)),
-      ),
-      PopupMenuItem(
-        value: 'perfil',
-        child: Text('Mi perfil', style: TextStyle(color: Colors.white)),
-      ),
-      PopupMenuDivider(),
-      PopupMenuItem(
-        value: 'logout',
-        child: Text(
-          'Cerrar sesión',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-      ),
-    ),
-  ],
-),
-
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -221,7 +299,11 @@ class _HomeScreenState extends State<HomeScreen> {
               // Logo
               Padding(
                 padding: const EdgeInsets.only(top: 8, bottom: 8),
-                child: Image.asset('assets/logo.png', height: 110, fit: BoxFit.contain),
+                child: Image.asset(
+                  'assets/logo.png',
+                  height: 110,
+                  fit: BoxFit.contain,
+                ),
               ),
 
               // Contenedor celeste con carrusel
@@ -234,17 +316,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Próximos turnos',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                    const Text(
+                      'Próximos turnos',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 12),
 
                     SizedBox(
                       height: 110,
-                      child: PageView.builder(
-                        controller: _pageCtrl,
-                        itemCount: _nextAppointments.length,
-                        onPageChanged: (i) => setState(() => _currentPage = i),
-                        itemBuilder: (_, i) => _AppointmentCard(app: _nextAppointments[i]),
+                      child: Builder(
+                        builder: (_) {
+                          final upcomingCount = _nextAppointments.length > 3
+                              ? 3
+                              : _nextAppointments.length;
+
+                          if (upcomingCount == 0) {
+                            return const Center(
+                              child: Text('No hay turnos próximos'),
+                            );
+                          }
+
+                          return PageView.builder(
+                            controller: _pageCtrl,
+                            itemCount: upcomingCount,
+                            onPageChanged: (i) =>
+                                setState(() => _currentPage = i),
+                            itemBuilder: (_, i) =>
+                                _AppointmentCard(app: _nextAppointments[i]),
+                          );
+                        },
                       ),
                     ),
 
@@ -253,7 +356,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
-                        _nextAppointments.length,
+                        (_nextAppointments.length > 3
+                            ? 3
+                            : _nextAppointments.length),
                         (i) => AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
                           margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -261,7 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           height: _currentPage == i ? 10 : 8,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            
                             color: _currentPage == i
                                 ? pal.colorAcento2.withValues(alpha: 0.9)
                                 : pal.colorPrimario.withValues(alpha: 0.6),
@@ -290,8 +394,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.person,
                     label: 'Mi Perfil',
                     onTap: () {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(content: Text('Ir a Mi Perfil')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Ir a Mi Perfil')),
+                      );
                     },
                   ),
                   _QuickButton(
@@ -300,7 +405,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const MisTurnosScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const MisTurnosScreen(),
+                        ),
                       );
                     },
                   ),
@@ -310,7 +417,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const EspecialidadesScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const EspecialidadesScreen(),
+                        ),
                       );
                     },
                   ),
@@ -320,7 +429,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ProfesionaleScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProfesionaleScreen(),
+                        ),
                       );
                     },
                   ),
@@ -355,8 +466,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),*/
       bottomNavigationBar: CustomBottomNav(
-      currentIndex: _bottomIndex,
-      onDestinationSelected: (i) => setState(() => _bottomIndex = i),
+        currentIndex: _bottomIndex,
+        onDestinationSelected: (i) => setState(() => _bottomIndex = i),
       ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -380,12 +491,54 @@ class _HomeScreenState extends State<HomeScreen> {
 class Appointment {
   final String especialidad;
   final String profesional;
-  final String fecha;
+  final String fecha; // presentación: e.g. 12/03/2025 • 09:00
+  final DateTime fechaHora; // usado para ordenamiento
+  final String estado;
+
   const Appointment({
     required this.especialidad,
     required this.profesional,
     required this.fecha,
+    required this.fechaHora,
+    required this.estado,
   });
+
+  factory Appointment.fromJson(Map<String, dynamic> json) {
+    final fechaOriginal = json['fecha'] ?? '';
+    final horarioOriginal = json['horario'] ?? '';
+
+    DateTime fechaHoraCompleta;
+    try {
+      fechaHoraCompleta = DateTime.parse('$fechaOriginal $horarioOriginal');
+    } catch (_) {
+      fechaHoraCompleta = DateTime.now();
+    }
+
+    String fechaFormateada = fechaOriginal;
+    if (fechaFormateada.contains('-')) {
+      final partes = fechaFormateada.split('-');
+      if (partes.length == 3) {
+        fechaFormateada = '${partes[2]}/${partes[1]}/${partes[0]}';
+      }
+    }
+
+    String horarioFormateado = horarioOriginal;
+    if (horarioFormateado.length > 5) {
+      horarioFormateado = horarioFormateado.substring(0, 5);
+    }
+
+    final especialidad =
+        json['profesional']?['especialidad']?['nombre'] ?? 'Sin especialidad';
+    final profesional = json['profesional']?['nombre'] ?? 'Sin asignar';
+
+    return Appointment(
+      especialidad: especialidad,
+      profesional: profesional,
+      fecha: '$fechaFormateada  •  $horarioFormateado',
+      fechaHora: fechaHoraCompleta,
+      estado: json['estado'] ?? 'cancelado',
+    );
+  }
 }
 
 class _AppointmentCard extends StatelessWidget {
@@ -404,8 +557,10 @@ class _AppointmentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${app.especialidad} • ${app.profesional}',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(
+              '${app.especialidad} • ${app.profesional}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
             Text(app.fecha, style: const TextStyle(color: Colors.black54)),
           ],
@@ -441,8 +596,11 @@ class _QuickButton extends StatelessWidget {
             children: [
               Icon(icon, size: 36, color: pal.colorAcento),
               const SizedBox(height: 10),
-              Text(label, textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ),
@@ -465,10 +623,12 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         count > 9 ? '9+' : '$count',
-        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 }
-
-
