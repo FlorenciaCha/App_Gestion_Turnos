@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 
 import '../Especialidades/especialidades.dart';
 import '../Login/login_screen.dart';
+import '../Perfil/perfil.dart';
 import '../Profesionales/profesionales.dart';
 import '../Turnos/gestion_turnos.dart';
 import '../Turnos/misTurnos.dart';
@@ -232,9 +233,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
             case 'perfil':
               if (!context.mounted) return;
-              ScaffoldMessenger.of(
+              Navigator.push(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('Ir a Mi perfil')));
+                MaterialPageRoute(builder: (_) => const MiPerfilScreen()),
+              );
               break;
 
             case 'logout':
@@ -394,8 +396,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     icon: Icons.person,
                     label: 'Mi Perfil',
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ir a Mi Perfil')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MiPerfilScreen(),
+                        ),
                       );
                     },
                   ),

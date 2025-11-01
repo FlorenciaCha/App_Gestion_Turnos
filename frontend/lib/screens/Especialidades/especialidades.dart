@@ -215,12 +215,8 @@ class _EspecialidadTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          // Aquí podrías navegar a detalle de especialidad o a lista de profesionales filtrada
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Seleccionaste: ${especialidad.nombre}')),
-          );
-        },
+        // Tile solo visual: deshabilitamos la acción onTap para que no muestre nada
+        onTap: null,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -248,19 +244,8 @@ class _EspecialidadTile extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: 8),
-
-              // Botón de opciones
-              Container(
-                height: 40,
-                width: 68,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.more_horiz, color: Colors.black45),
-              ),
+              // Espacio reservado (sin botón de opciones)
+              const SizedBox.shrink(),
             ],
           ),
         ),

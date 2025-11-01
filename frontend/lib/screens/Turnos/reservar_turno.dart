@@ -477,12 +477,15 @@ class _ReservarTurnoWizardState extends State<ReservarTurnoWizard> {
                         : '${_fecha!.month.toString().padLeft(2,'0')}/${_fecha!.day.toString().padLeft(2,'0')}/${_fecha!.year}',
                   ),
                   decoration: _inputDecoration(hint: 'MM/DD/YYYY', prefix: Icons.event),
-                  onTap: () async {
+                    onTap: () async {
                     final now = DateTime.now();
+                    final tomorrow = now.add(const Duration(days: 1));
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: _fecha ?? now,
-                      firstDate: now,
+                      // Si no hay fecha seleccionada, mostramos mañana como fecha inicial
+                      initialDate: _fecha ?? tomorrow,
+                      // Impedir seleccionar hoy o fechas anteriores; solo desde mañana en adelante
+                      firstDate: tomorrow,
                       lastDate: DateTime(now.year + 1),
                       builder: (ctx, child) => Theme(
                         data: Theme.of(ctx).copyWith(

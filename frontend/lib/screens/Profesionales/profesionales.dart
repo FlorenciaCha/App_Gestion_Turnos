@@ -383,9 +383,8 @@ class _ProfesionalTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          // Aquí podés abrir detalle si lo necesitás
-        },
+        // Tile solo visual: deshabilitamos la acción onTap para que no haga nada al pulsar
+        onTap: null,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -432,18 +431,8 @@ class _ProfesionalTile extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: 8),
-
-              Container(
-                height: 40,
-                width: 68,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.more_horiz, color: Colors.black45),
-              ),
+              // Espacio reservado (sin botón de opciones)
+              const SizedBox.shrink(),
             ],
           ),
         ),
