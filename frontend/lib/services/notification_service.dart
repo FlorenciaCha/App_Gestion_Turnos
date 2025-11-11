@@ -74,7 +74,7 @@ class NotificationService {
     final url = Uri.parse('${ApiConfig.baseUrl}/fcm/register-device');
 
     final body = jsonEncode({
-      "token_fcm": token, // 👈 tiene que matchear lo que espera tu endpoint FastAPI
+      "token_fcm": token, // tiene que matchear lo que espera tu endpoint FastAPI
     });
 
     final res = await http.post(
